@@ -6,8 +6,8 @@
 <title>คำนวณ Man-Month — ICT (ราคากลางที่ปรึกษา มีนาคม ๒๕๖๙)</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.13/build/pdfmake.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.13/build/vfs_fonts.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -899,68 +899,108 @@ function exportXLSX() {
 }
 
 function exportPDF() {
-  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+  if (typeof pdfMake === 'undefined') {
     alert('กำลังโหลดไลบรารี กรุณาลองใหม่อีกครั้ง');
     return;
   }
   if (positions.length === 0) { alert('ยังไม่มีรายการตำแหน่ง'); return; }
 
-  const { jsPDF } = window.jspdf || window;
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  const titleText = projectName ? projectName : 'Man-Month Rate Calculator - ICT';
-  doc.text(titleText, 14, 16);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text('หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา สบน. มีนาคม 2569  |  วันที่พิมพ์: ' + new Date().toLocaleDateString('th-TH'), 14, 22);
-
-  const rows  = buildExportRows();
-  const totalMM   = rows.reduce((s, r) => s + r.mm, 0);
+  const rows = buildExportRows();
+  const totalMM = rows.reduce((s, r) => s + r.mm, 0);
   const totalCost = rows.reduce((s, r) => s + r.total, 0);
 
-  const head = [['#', 'Position / Role', 'Type', 'Basic (THB/mo)', 'Mark-up', 'Billing Rate (THB/MM)', 'Month', 'Total (THB)']];
-  const body = rows.map(r => [
-    r.no,
-    r.name,
-    r.type,
-    Math.round(r.basic).toLocaleString('th-TH'),
-    typeof r.markup === 'number' ? r.markup.toFixed(3) : r.markup,
-    Math.round(r.billing).toLocaleString('th-TH'),
-    r.mm.toFixed(1),
-    Math.round(r.total).toLocaleString('th-TH'),
-  ]);
-  body.push(['', '', '', '', '', 'Total', totalMM.toFixed(1), Math.round(totalCost).toLocaleString('th-TH')]);
+  const titleText = projectName ? projectName : 'Man-Month Rate Calculator - ICT';
+  const dateStr = new Date().toLocaleDateString('th-TH');
 
-  doc.autoTable({
-    head,
-    body,
-    startY: 28,
-    styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica' },
-    headStyles: { fillColor: [12, 68, 124], textColor: 255, fontStyle: 'bold' },
-    columnStyles: {
-      0: { cellWidth: 8,  halign: 'center' },
-      3: { halign: 'right' },
-      4: { halign: 'right', cellWidth: 18 },
-      5: { halign: 'right', cellWidth: 30 },
-      6: { halign: 'right', cellWidth: 14 },
-      7: { halign: 'right', cellWidth: 26 },
-    },
-    didParseCell(data) {
-      if (data.row.index === body.length - 1) {
-        data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = [230, 241, 251];
-        data.cell.styles.textColor = [12, 68, 124];
-      }
-    },
+  // Build table rows
+  const tableBody = [
+    [
+      { text: '#', bold: true, alignment: 'center', fillColor: '#0c447c', color: '#fff' },
+      { text: 'Position / Role', bold: true, fillColor: '#0c447c', color: '#fff' },
+      { text: 'Type', bold: true, fillColor: '#0c447c', color: '#fff' },
+      { text: 'Basic (THB/mo)', bold: true, alignment: 'right', fillColor: '#0c447c', color: '#fff' },
+      { text: 'Mark-up', bold: true, alignment: 'right', fillColor: '#0c447c', color: '#fff' },
+      { text: 'Billing Rate (THB/MM)', bold: true, alignment: 'right', fillColor: '#0c447c', color: '#fff' },
+      { text: 'Month', bold: true, alignment: 'right', fillColor: '#0c447c', color: '#fff' },
+      { text: 'Total (THB)', bold: true, alignment: 'right', fillColor: '#0c447c', color: '#fff' },
+    ]
+  ];
+
+  rows.forEach(r => {
+    tableBody.push([
+      { text: r.no.toString(), alignment: 'center' },
+      { text: r.name },
+      { text: r.type, fontSize: 8 },
+      { text: Math.round(r.basic).toLocaleString('th-TH'), alignment: 'right' },
+      { text: (typeof r.markup === 'number' ? r.markup.toFixed(3) : r.markup), alignment: 'right' },
+      { text: Math.round(r.billing).toLocaleString('th-TH'), alignment: 'right' },
+      { text: r.mm.toFixed(1), alignment: 'right' },
+      { text: Math.round(r.total).toLocaleString('th-TH'), alignment: 'right' },
+    ]);
   });
 
-  const pdfFilename = projectName 
+  // Total row
+  tableBody.push([
+    { text: '', colSpan: 5 },
+    {},
+    {},
+    {},
+    {},
+    { text: 'Total', bold: true, fillColor: '#e6f1fb', color: '#0c447c' },
+    { text: totalMM.toFixed(1), bold: true, alignment: 'right', fillColor: '#e6f1fb', color: '#0c447c' },
+    { text: Math.round(totalCost).toLocaleString('th-TH'), bold: true, alignment: 'right', fillColor: '#e6f1fb', color: '#0c447c' },
+  ]);
+
+  const docDefinition = {
+    defaultStyle: { font: 'THSarabun', fontSize: 9 },
+    content: [
+      {
+        text: titleText,
+        style: 'title',
+        margin: [0, 0, 0, 8],
+      },
+      {
+        text: 'หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา สบน. มีนาคม 2569  |  วันที่พิมพ์: ' + dateStr,
+        style: 'subtitle',
+        margin: [0, 0, 0, 12],
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['5%', '18%', '15%', '12%', '10%', '15%', '8%', '17%'],
+          body: tableBody,
+        },
+        layout: 'lightHorizontalLines',
+      },
+    ],
+    styles: {
+      title: {
+        fontSize: 13,
+        bold: true,
+        margin: [0, 10, 0, 0],
+      },
+      subtitle: {
+        fontSize: 9,
+        color: '#666',
+      },
+    },
+    pageOrientation: 'landscape',
+    pageMargins: [14, 14, 14, 14],
+  };
+
+  pdfMake.fonts = {
+    THSarabun: {
+      normal: 'https://cdn.jsdelivr.net/npm/thsarabun@1.7.0/dist/THSarabun-Regular.ttf',
+      bold: 'https://cdn.jsdelivr.net/npm/thsarabun@1.7.0/dist/THSarabun-Bold.ttf',
+    },
+  };
+  pdfMake.vfs = pdfMakevfs || pdfMake.vfs;
+
+  const pdfFilename = projectName
     ? projectName.replace(/[\/<>:"|?*]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf'
     : 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf';
-  doc.save(pdfFilename);
+
+  pdfMake.createPdf(docDefinition).download(pdfFilename);
 }
 </script>
 </body>
