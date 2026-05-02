@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำนวณ Man-Month — ICT (ราคากลางที่ปรึกษา มีนาคม ๒๕๖๙)</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: #d3d1c7;
+    --border2: #b4b2a9;
+    --text: #2c2c2a;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --accent: #185fa5;
+    --accent-bg: #e6f1fb;
+    --accent-dark: #0c447c;
+    --success: #3b6d11;
+    --success-bg: #eaf3de;
+    --warn: #854f0b;
+    --warn-bg: #faeeda;
+    --danger: #a32d2d;
+    --danger-bg: #fcebeb;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.10);
+  }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .app-header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent-dark);
+    line-height: 1.3;
+  }
+  .app-header p {
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .badge-ref {
+    font-size: 11px;
+    background: var(--accent-bg);
+    color: var(--accent-dark);
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .formula-box {
+    background: var(--accent-bg);
+    border: 1px solid #b5d4f4;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--accent-dark);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .formula-box .f-eq { font-weight: 600; font-size: 14px; }
+  .formula-box span { white-space: nowrap; }
+
+  .positions-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .position-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    position: relative;
+    transition: border-color 0.15s;
+  }
+  .position-card:hover { border-color: var(--border2); }
+
+  .pos-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .pos-num {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .btn-remove {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Sarabun', sans-serif;
+    transition: background 0.1s;
+  }
+  .btn-remove:hover { background: var(--danger-bg); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+  }
+  .form-group input, .form-group select {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'Sarabun', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+  }
+
+  .markup-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .markup-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .markup-item label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 2px;
+  }
+  .markup-item .mu-val {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent-dark);
+  }
+
+  .pos-result {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--success-bg);
+    border: 1px solid #c0dd97;
+    border-radius: var(--radius-sm);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .pos-result .r-item { text-align: center; }
+  .pos-result .r-label { font-size: 11px; color: var(--success); font-weight: 600; }
+  .pos-result .r-val { font-size: 18px; font-weight: 700; color: var(--success); }
+  .pos-result .r-sub { font-size: 11px; color: var(--text3); }
+
+  .warn-box {
+    background: var(--warn-bg);
+    border: 1px solid #ef9f27;
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--warn);
+    margin-top: 10px;
+  }
+
+  .btn-add {
+    width: 100%;
+    padding: 12px;
+    background: none;
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Sarabun', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .btn-add:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+  }
+
+  .summary-card {
+    background: var(--accent-dark);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    color: white;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 16px;
+  }
+  .summary-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.75;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .sum-item { border-left: 2px solid rgba(255,255,255,0.25); padding-left: 12px; }
+  .sum-label { font-size: 12px; opacity: 0.65; }
+  .sum-val { font-size: 22px; font-weight: 700; }
+  .sum-unit { font-size: 12px; opacity: 0.65; }
+
+  .table-wrap { overflow-x: auto; margin-top: 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table tr:last-child td { border-bottom: none; }
+  table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  table .total-row td {
+    font-weight: 700;
+    background: var(--accent-bg);
+    color: var(--accent-dark);
+  }
+
+  .info-accordion summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    padding: 8px 0;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .info-accordion summary::before { content: '▶'; font-size: 10px; transition: transform 0.2s; }
+  .info-accordion[open] summary::before { transform: rotate(90deg); }
+  .info-accordion .info-body {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.7;
+    padding: 8px 0 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+  .info-body ul { padding-left: 18px; }
+  .info-body li { margin-bottom: 4px; }
+  .info-body .highlight { color: var(--accent-dark); font-weight: 600; }
+
+  .chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .chip-blue { background: var(--accent-bg); color: var(--accent-dark); }
+  .chip-green { background: var(--success-bg); color: var(--success); }
+  .chip-warn { background: var(--warn-bg); color: var(--warn); }
+
+  .export-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .btn-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Sarabun', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-export:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-export:active { transform: translateY(0); }
+  .btn-export-xlsx { background: #1e6f42; color: #fff; }
+  .btn-export-pdf  { background: #c0392b; color: #fff; }
+
+  @media (max-width: 600px) {
+    .app-header { padding: 12px 16px; }
+    .container { padding: 14px 12px 60px; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .sum-val { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>เครื่องคำนวณ Man-Month — กลุ่มวิชาชีพ ICT</h1>
+    <p>หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา • สบน. มีนาคม ๒๕๖๙</p>
+  </div>
+  <span class="badge-ref">ตารางที่ 4 ราคากลาง</span>
+</header>
+
+<div class="container">
+
+  <!-- สูตรคำนวณ -->
+  <div class="section-card">
+    <div class="section-title">สูตรคำนวณ (Billing Rate / Man-Month Rate)</div>
+    <div class="formula-box">
+      <span class="f-eq">Man-Month Rate</span>
+      <span>=</span>
+      <span>Basic Salary × Mark-up Factor</span>
+    </div>
+    <div class="formula-box" style="background:var(--warn-bg); border-color:#fac775; color:var(--warn);">
+      <span class="f-eq">Mark-up</span>
+      <span>=</span>
+      <span>(Basic + ค่าสวัสดิการสังคม + ค่าโสหุ้ย) × (1 + Professional Fee%) / Basic</span>
+    </div>
+    <details class="info-accordion">
+      <summary>ดูรายละเอียดองค์ประกอบ Mark-up Factor</summary>
+      <div class="info-body">
+        <ul>
+          <li><span class="highlight">บริษัท (มี 3 หลักฐาน ISO/Software/ประกัน) Mark-up = 2.560</span> | ค่าสวัสดิการ 45% + โสหุ้ย 45% + วิชาชีพ 10%</li>
+          <li><span class="highlight">บริษัท (มี 2 หลักฐาน) Mark-up = 2.464</span> | โสหุ้ยลด 5%</li>
+          <li><span class="highlight">บริษัท (มี 1 หลักฐาน) Mark-up = 2.430</span> | โสหุ้ยลด 10%</li>
+          <li><span class="highlight">บริษัท (ไม่มีหลักฐาน) Mark-up = 2.074</span> | โสหุ้ยลด 15%</li>
+          <li><span class="highlight">ที่ปรึกษาอิสระ (ผ่านองค์กรรัฐ) Mark-up = 1.430</span> | โสหุ้ย 30% + วิชาชีพ 10%</li>
+          <li><span class="highlight">ที่ปรึกษาอิสระ (ตรง/freelance) Mark-up = 1.00</span> | ได้เฉพาะ Basic Salary</li>
+          <li><span class="highlight">พนักงานรัฐ/สถานศึกษา (บุคลากรหลัก) Mark-up = 1.750</span> | โสหุ้ย 80% อาคาร + วิชาชีพ 10%</li>
+          <li><span class="highlight">พนักงานรัฐ/สถานศึกษา (บุคลากรผู้ช่วย) Mark-up = 1.467</span></li>
+          <li>บุคลากรสนับสนุน (ช่างเทคนิค) อัตราคงที่ <span class="highlight">39,120 บาท/เดือน</span></li>
+          <li>บุคลากรสนับสนุน (เลขานุการ) อัตราคงที่ <span class="highlight">22,050 บาท/เดือน</span></li>
+          <li>1 man-month = 22 วัน | 1 man-day = 8 ชั่วโมง | 1 man-month = 176 ชั่วโมง</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <!-- ตารางอัตรา Basic Salary ICT -->
+  <div class="section-card">
+    <div class="section-title">ตารางที่ 4 — อัตราเงินเดือนพื้นฐาน (Basic Salary) กลุ่มวิชาชีพ ICT (บาท/เดือน)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ประสบการณ์ (ปี)</th>
+            <th class="num">ปริญญาตรี</th>
+            <th class="num">ปริญญาโท</th>
+            <th class="num">ปริญญาเอก</th>
+          </tr>
+        </thead>
+        <tbody id="basic-salary-table"></tbody>
+      </table>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:8px;">* ที่มา: หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา สบน. มีนาคม ๒๕๖๙ • ตารางที่ 4 กลุ่มวิชาชีพเทคโนโลยีสารสนเทศและการสื่อสาร</p>
+  </div>
+
+  <!-- รายการตำแหน่ง -->
+  <div class="section-card">
+    <div class="section-title">รายการตำแหน่งที่ปรึกษา ICT</div>
+    <div class="positions-list" id="positions-list"></div>
+    <button class="btn-add" onclick="addPosition()">+ เพิ่มตำแหน่ง</button>
+  </div>
+
+  <!-- สรุปรวม -->
+  <div class="summary-card" id="summary-card">
+    <h2>สรุปรวม Man-Month Rate ทั้งโครงการ</h2>
+    <div class="summary-grid">
+      <div class="sum-item">
+        <div class="sum-label">จำนวนตำแหน่ง</div>
+        <div class="sum-val" id="total-positions">—</div>
+        <div class="sum-unit">ตำแหน่ง</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">รวม Man-Month ทั้งสิ้น</div>
+        <div class="sum-val" id="total-mm">—</div>
+        <div class="sum-unit">man-month</div>
+      </div>
+      <div class="sum-item">
+        <div class="sum-label">ค่าตอบแทนบุคลากรรวม</div>
+        <div class="sum-val" id="total-cost">—</div>
+        <div class="sum-unit">บาท</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ตารางสรุป -->
+  <div class="section-card" id="summary-table-section">
+    <div class="section-title">ตารางสรุปรายตำแหน่ง</div>
+    <div class="export-bar">
+      <button class="btn-export btn-export-xlsx" onclick="exportXLSX()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        ส่งออก Excel (.xlsx)
+      </button>
+      <button class="btn-export btn-export-pdf" onclick="exportPDF()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        ส่งออก PDF
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>ตำแหน่ง</th>
+            <th>ประเภท</th>
+            <th class="num">Basic (บาท/เดือน)</th>
+            <th class="num">Mark-up</th>
+            <th class="num">Billing Rate (บาท/MM)</th>
+            <th class="num">MM</th>
+            <th class="num">รวม (บาท)</th>
+          </tr>
+        </thead>
+        <tbody id="summary-tbody"></tbody>
+        <tfoot id="summary-tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const ICT_BASIC = [
+  { exp:  1, tri:  25190, tho:  29100, ek:  33750 },
+  { exp:  2, tri:  29430, tho:  30850, ek:  37400 },
+  { exp:  3, tri:  30830, tho:  35300, ek:  40480 },
+  { exp:  4, tri:  33720, tho:  43000, ek:  44040 },
+  { exp:  5, tri:  43000, tho:  47840, ek:  53760 },
+  { exp:  6, tri:  45270, tho:  49470, ek:  55400 },
+  { exp:  7, tri:  50400, tho:  57700, ek:  73450 },
+  { exp:  8, tri:  55080, tho:  79740, ek:  75000 },
+  { exp:  9, tri:  55430, tho:  77380, ek:  77080 },
+  { exp: 10, tri:  73000, tho:  70050, ek:  77770 },
+  { exp: 11, tri:  75970, tho:  79450, ek:  85070 },
+  { exp: 12, tri:  75300, tho:  82540, ek:  94010 },
+  { exp: 13, tri:  80470, tho:  85840, ek:  97750 },
+  { exp: 14, tri:  85470, tho:  95440, ek: 103740 },
+  { exp: 15, tri:  93000, tho: 103030, ek: 109170 },
+  { exp: 16, tri:  97540, tho: 105700, ek: 101530 },
+  { exp: 17, tri: 103410, tho: 109370, ek: 104550 },
+  { exp: 18, tri: 108470, tho: 107440, ek: 187400 },
+  { exp: 19, tri: 100570, tho: 177000, ek: 130080 },
+  { exp: 20, tri: 178030, tho: 178540, ek: 137050 },
+  { exp: 21, tri: 177540, tho: 133750, ek: 148040 },
+  { exp: 22, tri: 137450, tho: 133470, ek: 147370 },
+  { exp: 23, tri: 160770, tho: 147540, ek: 153070 },
+  { exp: 24, tri: 167080, tho: 157470, ek: 154070 },
+  { exp: 25, tri: 155340, tho: 157760, ek: 177300 },
+  { exp: 26, tri: 177340, tho: 167750, ek: 177750 },
+  { exp: 27, tri: 370080, tho: 179450, ek: 174540 },
+  { exp: 28, tri: 374350, tho: 180440, ek: 185440 },
+  { exp: 29, tri: 184700, tho: 191000, ek: 197560 },
+  { exp: 30, tri: 184010, tho: 194900, ek: 209000 },
+  { exp: 99, tri: 207050, tho: 207080, ek: 208010 },
+];
+
+const ICT_BASIC_PDF = ICT_BASIC;
+
+const MARKUP_OPTIONS = [
+  { id:'co3', label:'บริษัท (ครบ 3 หลักฐาน)', markup:2.560, type:'บริษัท', badge:'chip-green' },
+  { id:'co2', label:'บริษัท (2 หลักฐาน)',     markup:2.464, type:'บริษัท', badge:'chip-green' },
+  { id:'co1', label:'บริษัท (1 หลักฐาน)',     markup:2.430, type:'บริษัท', badge:'chip-green' },
+  { id:'co0', label:'บริษัท (ไม่มีหลักฐาน)', markup:2.074, type:'บริษัท', badge:'chip-warn' },
+  { id:'ind', label:'ที่ปรึกษาอิสระ (ผ่านองค์กรรัฐ)', markup:1.430, type:'อิสระ', badge:'chip-blue' },
+  { id:'frl', label:'ที่ปรึกษาอิสระ (ตรง/Freelance)',  markup:1.000, type:'อิสระ', badge:'chip-blue' },
+  { id:'gov', label:'พนักงานรัฐ/สถานศึกษา (บุคลากรหลัก)', markup:1.750, type:'รัฐ', badge:'chip-blue' },
+  { id:'gva', label:'พนักงานรัฐ/สถานศึกษา (บุคลากรผู้ช่วย)', markup:1.467, type:'รัฐ', badge:'chip-blue' },
+  { id:'tec', label:'บุคลากรสนับสนุน (ช่างเทคนิค)', markup:null, fixed:39120, type:'สนับสนุน', badge:'chip-warn' },
+  { id:'sec', label:'บุคลากรสนับสนุน (เลขานุการ)',   markup:null, fixed:22050, type:'สนับสนุน', badge:'chip-warn' },
+];
+
+const EXP_LABELS = [
+  {v:1,l:'1 ปี'},{v:2,l:'2 ปี'},{v:3,l:'3 ปี'},{v:4,l:'4 ปี'},{v:5,l:'5 ปี'},
+  {v:6,l:'6 ปี'},{v:7,l:'7 ปี'},{v:8,l:'8 ปี'},{v:9,l:'9 ปี'},{v:10,l:'10 ปี'},
+  {v:11,l:'11 ปี'},{v:12,l:'12 ปี'},{v:13,l:'13 ปี'},{v:14,l:'14 ปี'},{v:15,l:'15 ปี'},
+  {v:16,l:'16 ปี'},{v:17,l:'17 ปี'},{v:18,l:'18 ปี'},{v:19,l:'19 ปี'},{v:20,l:'20 ปี'},
+  {v:25,l:'25 ปี'},{v:30,l:'30 ปี'},{v:99,l:'มากกว่า 30 ปี'},
+];
+
+let positions = [];
+let pidCounter = 0;
+
+function fmt(n) { return Math.round(n).toLocaleString('th-TH'); }
+
+function getBasic(exp, deg) {
+  let row = ICT_BASIC_PDF.find(r => r.exp === exp);
+  if (!row) {
+    const sorted = [...ICT_BASIC_PDF].sort((a,b)=>a.exp-b.exp);
+    for (let i = sorted.length-1; i>=0; i--) {
+      if (sorted[i].exp <= exp) { row = sorted[i]; break; }
+    }
+  }
+  if (!row) return 0;
+  return deg === 'tho' ? row.tho : deg === 'ek' ? row.ek : row.tri;
+}
+
+function getMarkup(muId) {
+  return MARKUP_OPTIONS.find(m => m.id === muId);
+}
+
+function calcBillingRate(basic, muObj) {
+  if (!muObj) return 0;
+  if (muObj.fixed !== undefined && muObj.fixed !== null) return muObj.fixed;
+  if (muObj.markup === null) return basic;
+  return Math.round(basic * muObj.markup);
+}
+
+function buildPositionCard(pid) {
+  const p = positions.find(x => x.id === pid);
+  const idx = positions.indexOf(p) + 1;
+
+  let markupOpts = MARKUP_OPTIONS.map(m =>
+    `<option value="${m.id}" ${p.muId===m.id?'selected':''}>${m.label} (×${m.markup ?? 'Fixed'})</option>`
+  ).join('');
+
+  let expOpts = EXP_LABELS.map(e =>
+    `<option value="${e.v}" ${p.exp===e.v?'selected':''}>${e.l}</option>`
+  ).join('');
+
+  const muObj = getMarkup(p.muId);
+  const isFixed = muObj && (muObj.fixed !== undefined && muObj.fixed !== null);
+  const isRaw   = muObj && muObj.markup === 1.000;
+  const basic   = isFixed ? muObj.fixed : getBasic(p.exp, p.deg);
+  const billing = calcBillingRate(basic, muObj);
+  const total   = billing * p.mm;
+  const manDay  = (p.mm * 22).toFixed(1);
+  const manHour = (p.mm * 176).toFixed(0);
+
+  const markupVal = muObj ? (muObj.markup !== null ? muObj.markup.toFixed(3) : 'Fixed') : '—';
+  const warnMsg   = isFixed
+    ? `<div class="warn-box">อัตราคงที่ ${fmt(muObj.fixed)} บาท/เดือน (ไม่คำนวณจาก Basic Salary)</div>`
+    : isRaw
+    ? `<div class="warn-box">ที่ปรึกษาอิสระ (ตรง) ได้รับเฉพาะ Basic Salary = Billing Rate</div>`
+    : '';
+
+  return `
+  <div class="position-card" id="pos-card-${pid}">
+    <div class="pos-header">
+      <span class="pos-num">ตำแหน่ง ${idx}</span>
+      <button class="btn-remove" onclick="removePosition(${pid})">ลบ</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group" style="grid-column: span 2">
+        <label>ชื่อตำแหน่ง / Role</label>
+        <input type="text" placeholder="เช่น IT Project Manager, System Analyst" value="${p.name}" oninput="updateField(${pid},'name',this.value)">
+      </div>
+      <div class="form-group">
+        <label>ประเภทที่ปรึกษา / Mark-up</label>
+        <select onchange="updateField(${pid},'muId',this.value)">${markupOpts}</select>
+      </div>
+      <div class="form-group">
+        <label>วุฒิการศึกษา</label>
+        <select onchange="updateField(${pid},'deg',this.value)" ${isFixed?'disabled':''}>
+          <option value="tri" ${p.deg==='tri'?'selected':''}>ปริญญาตรี</option>
+          <option value="tho" ${p.deg==='tho'?'selected':''}>ปริญญาโท</option>
+          <option value="ek"  ${p.deg==='ek' ?'selected':''}>ปริญญาเอก</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ประสบการณ์</label>
+        <select onchange="updateField(${pid},'exp',parseInt(this.value))" ${isFixed?'disabled':''}>
+          ${expOpts}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>จำนวน Man-Month</label>
+        <input type="number" min="0.5" step="0.5" value="${p.mm}" oninput="updateField(${pid},'mm',parseFloat(this.value)||0)">
+      </div>
+    </div>
+    ${warnMsg}
+    <div class="markup-row">
+      <div class="markup-item">
+        <label>Basic Salary (บาท/เดือน)</label>
+        <div class="mu-val">${fmt(basic)}</div>
+      </div>
+      <div class="markup-item">
+        <label>Mark-up Factor</label>
+        <div class="mu-val">${markupVal}</div>
+      </div>
+      <div class="markup-item" style="background:var(--success-bg);border-color:#c0dd97;">
+        <label>Billing Rate (บาท/MM)</label>
+        <div class="mu-val" style="color:var(--success);">${fmt(billing)}</div>
+      </div>
+    </div>
+    <div class="pos-result">
+      <div class="r-item">
+        <div class="r-label">Man-Month</div>
+        <div class="r-val">${p.mm}</div>
+        <div class="r-sub">เดือน</div>
+      </div>
+      <div class="r-item">
+        <div class="r-label">Man-Day</div>
+        <div class="r-val">${manDay}</div>
+        <div class="r-sub">วัน (22 วัน/MM)</div>
+      </div>
+      <div class="r-item">
+        <div class="r-label">Man-Hour</div>
+        <div class="r-val">${manHour}</div>
+        <div class="r-sub">ชั่วโมง (176 ชม./MM)</div>
+      </div>
+      <div class="r-item">
+        <div class="r-label">ค่าตอบแทนรวม</div>
+        <div class="r-val">${fmt(total)}</div>
+        <div class="r-sub">บาท</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPositions() {
+  const list = document.getElementById('positions-list');
+  list.innerHTML = positions.map(p => buildPositionCard(p.id)).join('');
+  renderSummary();
+}
+
+function renderSummary() {
+  const totalMM   = positions.reduce((s,p) => s + (p.mm||0), 0);
+  const totalCost = positions.reduce((s,p) => {
+    const muObj = getMarkup(p.muId);
+    const isFixed = muObj && (muObj.fixed !== undefined && muObj.fixed !== null);
+    const basic = isFixed ? muObj.fixed : getBasic(p.exp, p.deg);
+    const billing = calcBillingRate(basic, muObj);
+    return s + billing * (p.mm||0);
+  }, 0);
+
+  document.getElementById('total-positions').textContent = positions.length || '—';
+  document.getElementById('total-mm').textContent = totalMM ? totalMM.toFixed(1) : '—';
+  document.getElementById('total-cost').textContent = totalCost ? fmt(totalCost) : '—';
+
+  const tbody = document.getElementById('summary-tbody');
+  const tfoot = document.getElementById('summary-tfoot');
+  tbody.innerHTML = positions.map((p,i) => {
+    const muObj = getMarkup(p.muId);
+    const isFixed = muObj && (muObj.fixed !== undefined && muObj.fixed !== null);
+    const basic   = isFixed ? muObj.fixed : getBasic(p.exp, p.deg);
+    const billing = calcBillingRate(basic, muObj);
+    const total   = billing * (p.mm||0);
+    const mu      = muObj ? (muObj.markup !== null ? muObj.markup.toFixed(3) : 'Fixed') : '—';
+    const typeChip = muObj ? `<span class="chip chip-blue">${muObj.type}</span>` : '';
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${p.name || '<span style="color:var(--text3)">ไม่ระบุ</span>'} ${typeChip}</td>
+      <td style="font-size:12px;color:var(--text2);">${muObj?.label||''}</td>
+      <td class="num">${fmt(basic)}</td>
+      <td class="num">${mu}</td>
+      <td class="num" style="font-weight:600;color:var(--success);">${fmt(billing)}</td>
+      <td class="num">${(p.mm||0).toFixed(1)}</td>
+      <td class="num" style="font-weight:600;">${fmt(total)}</td>
+    </tr>`;
+  }).join('');
+
+  tfoot.innerHTML = `<tr class="total-row">
+    <td colspan="6" style="text-align:right;">รวมทั้งสิ้น</td>
+    <td class="num">${totalMM.toFixed(1)}</td>
+    <td class="num">${fmt(totalCost)}</td>
+  </tr>`;
+}
+
+function addPosition() {
+  pidCounter++;
+  positions.push({ id:pidCounter, name:'', muId:'co3', deg:'tho', exp:5, mm:1 });
+  renderPositions();
+  setTimeout(() => {
+    const el = document.getElementById(`pos-card-${pidCounter}`);
+    if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 100);
+}
+
+function removePosition(pid) {
+  positions = positions.filter(p => p.id !== pid);
+  renderPositions();
+}
+
+function updateField(pid, field, val) {
+  const p = positions.find(x => x.id === pid);
+  if (!p) return;
+  p[field] = val;
+  const card = document.getElementById(`pos-card-${pid}`);
+  if (card) {
+    card.outerHTML = buildPositionCard(pid);
+  }
+  renderSummary();
+}
+
+function buildBasicTable() {
+  const rows = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25,30,99];
+  const tbody = document.getElementById('basic-salary-table');
+  tbody.innerHTML = rows.map(exp => {
+    const r = ICT_BASIC_PDF.find(x => x.exp === exp);
+    if (!r) return '';
+    const label = exp === 99 ? 'มากกว่า 30' : exp;
+    return `<tr>
+      <td>${label} ปี</td>
+      <td class="num">${fmt(r.tri)}</td>
+      <td class="num">${fmt(r.tho)}</td>
+      <td class="num">${fmt(r.ek)}</td>
+    </tr>`;
+  }).join('');
+}
+
+buildBasicTable();
+addPosition();
+addPosition();
+
+/* ─── Export helpers ─────────────────────────────────────────────── */
+
+function buildExportRows() {
+  return positions.map((p, i) => {
+    const muObj  = getMarkup(p.muId);
+    const isFixed = muObj && muObj.fixed != null;
+    const basic   = isFixed ? muObj.fixed : getBasic(p.exp, p.deg);
+    const billing = calcBillingRate(basic, muObj);
+    const total   = billing * (p.mm || 0);
+    const mu      = muObj ? (muObj.markup !== null ? muObj.markup : 'Fixed') : '';
+    return {
+      no: i + 1,
+      name: p.name || '(ไม่ระบุ)',
+      type: muObj?.label || '',
+      basic,
+      markup: mu,
+      billing,
+      mm: p.mm || 0,
+      total,
+    };
+  });
+}
+
+function exportXLSX() {
+  if (typeof XLSX === 'undefined') {
+    alert('กำลังโหลดไลบรารี กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+  if (positions.length === 0) { alert('ยังไม่มีรายการตำแหน่ง'); return; }
+
+  const rows   = buildExportRows();
+  const header = ['#', 'ตำแหน่ง / Role', 'ประเภท / Mark-up', 'Basic Salary (บาท/เดือน)', 'Mark-up Factor', 'Billing Rate (บาท/MM)', 'Man-Month', 'รวม (บาท)'];
+  const data   = rows.map(r => [r.no, r.name, r.type, r.basic, r.markup, r.billing, r.mm, r.total]);
+  const totalMM   = rows.reduce((s, r) => s + r.mm, 0);
+  const totalCost = rows.reduce((s, r) => s + r.total, 0);
+  data.push(['', '', '', '', '', 'รวมทั้งสิ้น', totalMM, totalCost]);
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+
+  // Column widths
+  ws['!cols'] = [4, 28, 38, 20, 14, 22, 12, 18].map(w => ({ wch: w }));
+
+  // Number formats for numeric columns
+  const numFmt = '#,##0';
+  const numFmtDec = '#,##0.000';
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = 1; R <= range.e.r; R++) {
+    [3, 5, 7].forEach(C => {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      if (ws[addr] && typeof ws[addr].v === 'number') ws[addr].z = numFmt;
+    });
+    const muAddr = XLSX.utils.encode_cell({ r: R, c: 4 });
+    if (ws[muAddr] && typeof ws[muAddr].v === 'number') ws[muAddr].z = numFmtDec;
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Man-Month Rate');
+  XLSX.writeFile(wb, 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+function exportPDF() {
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    alert('กำลังโหลดไลบรารี กรุณาลองใหม่อีกครั้ง');
+    return;
+  }
+  if (positions.length === 0) { alert('ยังไม่มีรายการตำแหน่ง'); return; }
+
+  const { jsPDF } = window.jspdf || window;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  // Title
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('Man-Month Rate Calculator - ICT', 14, 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา สบน. มีนาคม 2569  |  วันที่พิมพ์: ' + new Date().toLocaleDateString('th-TH'), 14, 22);
+
+  const rows  = buildExportRows();
+  const totalMM   = rows.reduce((s, r) => s + r.mm, 0);
+  const totalCost = rows.reduce((s, r) => s + r.total, 0);
+
+  const head = [['#', 'Position / Role', 'Type', 'Basic (THB/mo)', 'Mark-up', 'Billing Rate (THB/MM)', 'MM', 'Total (THB)']];
+  const body = rows.map(r => [
+    r.no,
+    r.name,
+    r.type,
+    Math.round(r.basic).toLocaleString('th-TH'),
+    typeof r.markup === 'number' ? r.markup.toFixed(3) : r.markup,
+    Math.round(r.billing).toLocaleString('th-TH'),
+    r.mm.toFixed(1),
+    Math.round(r.total).toLocaleString('th-TH'),
+  ]);
+  body.push(['', '', '', '', '', 'Total', totalMM.toFixed(1), Math.round(totalCost).toLocaleString('th-TH')]);
+
+  doc.autoTable({
+    head,
+    body,
+    startY: 28,
+    styles: { fontSize: 8, cellPadding: 2.5, font: 'helvetica' },
+    headStyles: { fillColor: [12, 68, 124], textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 8,  halign: 'center' },
+      3: { halign: 'right' },
+      4: { halign: 'right', cellWidth: 18 },
+      5: { halign: 'right', cellWidth: 30 },
+      6: { halign: 'right', cellWidth: 14 },
+      7: { halign: 'right', cellWidth: 26 },
+    },
+    didParseCell(data) {
+      if (data.row.index === body.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [230, 241, 251];
+        data.cell.styles.textColor = [12, 68, 124];
+      }
+    },
+  });
+
+  doc.save('ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf');
+}
+</script>
+</body>
+</html>
