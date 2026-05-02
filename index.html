@@ -351,6 +351,32 @@
   .chip-green { background: var(--success-bg); color: var(--success); }
   .chip-warn { background: var(--warn-bg); color: var(--warn); }
 
+  .project-input-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .project-input-group .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  .project-input-group input {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: 'Sarabun', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .project-input-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+  }
+
   .export-bar {
     display: flex;
     gap: 10px;
@@ -395,6 +421,14 @@
 </header>
 
 <div class="container">
+
+  <!-- ชื่อโครงการ -->
+  <div class="project-input-group">
+    <div class="form-group" style="flex:1;">
+      <label style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px;display:block;">ชื่อโครงการ / Project Name (ไม่บังคับ)</label>
+      <input type="text" placeholder="เช่น โครงการพัฒนาระบบสารสนเทศ" id="projectNameInput" oninput="updateProjectName(this.value)">
+    </div>
+  </div>
 
   <!-- สูตรคำนวณ -->
   <div class="section-card">
@@ -499,8 +533,8 @@
             <th>ประเภท</th>
             <th class="num">Basic (บาท/เดือน)</th>
             <th class="num">Mark-up</th>
-            <th class="num">Billing Rate (บาท/MM)</th>
-            <th class="num">MM</th>
+            <th class="num">Billing Rate (บาท/เดือน)</th>
+            <th class="num">เดือน</th>
             <th class="num">รวม (บาท)</th>
           </tr>
         </thead>
@@ -514,37 +548,37 @@
 
 <script>
 const ICT_BASIC = [
-  { exp:  1, tri:  25190, tho:  29100, ek:  33750 },
-  { exp:  2, tri:  29430, tho:  30850, ek:  37400 },
-  { exp:  3, tri:  30830, tho:  35300, ek:  40480 },
-  { exp:  4, tri:  33720, tho:  43000, ek:  44040 },
-  { exp:  5, tri:  43000, tho:  47840, ek:  53760 },
-  { exp:  6, tri:  45270, tho:  49470, ek:  55400 },
-  { exp:  7, tri:  50400, tho:  57700, ek:  73450 },
-  { exp:  8, tri:  55080, tho:  79740, ek:  75000 },
-  { exp:  9, tri:  55430, tho:  77380, ek:  77080 },
-  { exp: 10, tri:  73000, tho:  70050, ek:  77770 },
-  { exp: 11, tri:  75970, tho:  79450, ek:  85070 },
-  { exp: 12, tri:  75300, tho:  82540, ek:  94010 },
-  { exp: 13, tri:  80470, tho:  85840, ek:  97750 },
-  { exp: 14, tri:  85470, tho:  95440, ek: 103740 },
-  { exp: 15, tri:  93000, tho: 103030, ek: 109170 },
-  { exp: 16, tri:  97540, tho: 105700, ek: 101530 },
-  { exp: 17, tri: 103410, tho: 109370, ek: 104550 },
-  { exp: 18, tri: 108470, tho: 107440, ek: 187400 },
-  { exp: 19, tri: 100570, tho: 177000, ek: 130080 },
-  { exp: 20, tri: 178030, tho: 178540, ek: 137050 },
-  { exp: 21, tri: 177540, tho: 133750, ek: 148040 },
-  { exp: 22, tri: 137450, tho: 133470, ek: 147370 },
-  { exp: 23, tri: 160770, tho: 147540, ek: 153070 },
-  { exp: 24, tri: 167080, tho: 157470, ek: 154070 },
-  { exp: 25, tri: 155340, tho: 157760, ek: 177300 },
-  { exp: 26, tri: 177340, tho: 167750, ek: 177750 },
-  { exp: 27, tri: 370080, tho: 179450, ek: 174540 },
-  { exp: 28, tri: 374350, tho: 180440, ek: 185440 },
-  { exp: 29, tri: 184700, tho: 191000, ek: 197560 },
-  { exp: 30, tri: 184010, tho: 194900, ek: 209000 },
-  { exp: 99, tri: 207050, tho: 207080, ek: 208010 },
+  { exp:  1, tri:  25190, tho:  29100, ek:  33610 },
+  { exp:  2, tri:  27530, tho:  31650, ek:  36400 },
+  { exp:  3, tri:  30830, tho:  35300, ek:  40420 },
+  { exp:  4, tri:  37820, tho:  43110, ek:  49140 },
+  { exp:  5, tri:  41310, tho:  46880, ek:  53210 },
+  { exp:  6, tri:  45820, tho:  51770, ek:  58500 },
+  { exp:  7, tri:  50400, tho:  56700, ek:  63780 },
+  { exp:  8, tri:  55080, tho:  61690, ek:  69100 },
+  { exp:  9, tri:  59530, tho:  66380, ek:  74010 },
+  { exp: 10, tri:  63110, tho:  70050, ek:  77760 },
+  { exp: 11, tri:  69670, tho:  76980, ek:  85070 },
+  { exp: 12, tri:  75310, tho:  82840, ek:  91130 },
+  { exp: 13, tri:  81070, tho:  88770, ek:  97210 },
+  { exp: 14, tri:  86920, tho:  94740, ek: 103270 },
+  { exp: 15, tri:  93110, tho: 101030, ek: 109620 },
+  { exp: 16, tri:  96480, tho: 104200, ek: 112530 },
+  { exp: 17, tri: 101730, tho: 109360, ek: 117560 },
+  { exp: 18, tri: 108920, tho: 116540, ek: 124700 },
+  { exp: 19, tri: 114650, tho: 122100, ek: 130040 },
+  { exp: 20, tri: 121210, tho: 128480, ek: 136190 },
+  { exp: 21, tri: 126810, tho: 133780, ek: 141140 },
+  { exp: 22, tri: 132750, tho: 139390, ek: 146360 },
+  { exp: 23, tri: 140260, tho: 146580, ek: 153170 },
+  { exp: 24, tri: 147080, tho: 152970, ek: 159090 },
+  { exp: 25, tri: 153390, tho: 158760, ek: 164310 },
+  { exp: 26, tri: 162390, tho: 167260, ek: 172280 },
+  { exp: 27, tri: 170130, tho: 174380, ek: 178740 },
+  { exp: 28, tri: 177380, tho: 180930, ek: 184540 },
+  { exp: 29, tri: 187200, tho: 190010, ek: 192860 },
+  { exp: 30, tri: 197130, tho: 199100, ek: 201100 },
+  { exp: 99, tri: 206050, tho: 207080, ek: 208110 },
 ];
 
 const ICT_BASIC_PDF = ICT_BASIC;
@@ -572,6 +606,11 @@ const EXP_LABELS = [
 
 let positions = [];
 let pidCounter = 0;
+let projectName = '';
+
+function updateProjectName(val) {
+  projectName = val.trim();
+}
 
 function fmt(n) { return Math.round(n).toLocaleString('th-TH'); }
 
@@ -851,8 +890,12 @@ function exportXLSX() {
   }
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Man-Month Rate');
-  XLSX.writeFile(wb, 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  const sheetName = projectName || 'Man-Month Rate';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+  const filename = projectName 
+    ? projectName.replace(/[\/<>:"|?*]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.xlsx'
+    : 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.xlsx';
+  XLSX.writeFile(wb, filename);
 }
 
 function exportPDF() {
@@ -868,7 +911,8 @@ function exportPDF() {
   // Title
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text('Man-Month Rate Calculator - ICT', 14, 16);
+  const titleText = projectName ? projectName : 'Man-Month Rate Calculator - ICT';
+  doc.text(titleText, 14, 16);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text('หลักเกณฑ์ราคากลางการจ้างที่ปรึกษา สบน. มีนาคม 2569  |  วันที่พิมพ์: ' + new Date().toLocaleDateString('th-TH'), 14, 22);
@@ -877,7 +921,7 @@ function exportPDF() {
   const totalMM   = rows.reduce((s, r) => s + r.mm, 0);
   const totalCost = rows.reduce((s, r) => s + r.total, 0);
 
-  const head = [['#', 'Position / Role', 'Type', 'Basic (THB/mo)', 'Mark-up', 'Billing Rate (THB/MM)', 'MM', 'Total (THB)']];
+  const head = [['#', 'Position / Role', 'Type', 'Basic (THB/mo)', 'Mark-up', 'Billing Rate (THB/MM)', 'Month', 'Total (THB)']];
   const body = rows.map(r => [
     r.no,
     r.name,
@@ -913,7 +957,10 @@ function exportPDF() {
     },
   });
 
-  doc.save('ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf');
+  const pdfFilename = projectName 
+    ? projectName.replace(/[\/<>:"|?*]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf'
+    : 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf';
+  doc.save(pdfFilename);
 }
 </script>
 </body>
