@@ -925,7 +925,58 @@ function exportPDF() {
     '<th style="border: 1px solid #0c447c; padding: 8px; text-align: right; font-weight: bold;">Billing Rate (THB/MM)</th>' +
     '<th style="border: 1px solid #0c447c; padding: 8px; text-align: right; font-weight: bold;">Month</th>' +
     '<th style="border: 1px solid #0c447c; padding: 8px; text-align: right; font-weight: bold;">Total (THB)</th>' +
-    '</tr></thead><tbody>';\n  rows.forEach(r => {\n    tableHTML += '<tr style=\"border-bottom: 1px solid #ddd;\">' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: center;\">' + r.no + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: left;\">' + r.name + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;\">' + r.type + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right;\">' + Math.round(r.basic).toLocaleString('th-TH') + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right;\">' + (typeof r.markup === 'number' ? r.markup.toFixed(3) : r.markup) + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right;\">' + Math.round(r.billing).toLocaleString('th-TH') + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right;\">' + r.mm.toFixed(1) + '</td>' +\n      '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right;\">' + Math.round(r.total).toLocaleString('th-TH') + '</td>' +\n      '</tr>';\n  });\n  tableHTML += '<tr style=\"background-color: #e6f1fb;\">' +\n    '<td colspan=\"5\" style=\"border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;\">Total</td>' +\n    '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;\"></td>' +\n    '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;\">' + totalMM.toFixed(1) + '</td>' +\n    '<td style=\"border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;\">' + Math.round(totalCost).toLocaleString('th-TH') + '</td>' +\n    '</tr></tbody></table></div>';\n\n  const pdfElement = document.createElement('div');\n  pdfElement.innerHTML = tableHTML;\n  pdfElement.style.position = 'absolute';\n  pdfElement.style.left = '-9999px';\n  pdfElement.style.width = '1200px';\n  document.body.appendChild(pdfElement);\n\n  html2canvas(pdfElement, {\n    scale: 2,\n    useCORS: true,\n    logging: false,\n    backgroundColor: '#ffffff',\n  }).then(canvas => {\n    const { jsPDF } = window.jspdf;\n    const imgData = canvas.toDataURL('image/png');\n    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });\n    const pageWidth = pdf.internal.pageSize.getWidth();\n    const pageHeight = pdf.internal.pageSize.getHeight();\n    const imgWidth = pageWidth - 20;\n    const imgHeight = (canvas.height * imgWidth) / canvas.width;\n    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);\n    const pdfFilename = projectName\n      ? projectName.replace(/[\\/<>:\"|?*]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf'\n      : 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf';\n    pdf.save(pdfFilename);\n    document.body.removeChild(pdfElement);\n  }).catch(err => {\n    alert('เกิดข้อผิดพลาดในการสร้าง PDF');\n    document.body.removeChild(pdfElement);\n  });\n}
+    '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    tableHTML += '<tr style="border-bottom: 1px solid #ddd;">' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: center;">' + r.no + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">' + r.name + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px;">' + r.type + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: right;">' + Math.round(r.basic).toLocaleString('th-TH') + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: right;">' + (typeof r.markup === 'number' ? r.markup.toFixed(3) : r.markup) + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: right;">' + Math.round(r.billing).toLocaleString('th-TH') + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: right;">' + r.mm.toFixed(1) + '</td>' +
+      '<td style="border: 1px solid #ddd; padding: 8px; text-align: right;">' + Math.round(r.total).toLocaleString('th-TH') + '</td>' +
+      '</tr>';
+  });
+
+  tableHTML += '<tr style="background-color: #e6f1fb;">' +
+    '<td colspan="5" style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;">Total</td>' +
+    '<td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;"></td>' +
+    '<td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;">' + totalMM.toFixed(1) + '</td>' +
+    '<td style="border: 1px solid #ddd; padding: 8px; text-align: right; font-weight: bold; color: #0c447c;">' + Math.round(totalCost).toLocaleString('th-TH') + '</td>' +
+    '</tr></tbody></table></div>';
+
+  const pdfElement = document.createElement('div');
+  pdfElement.innerHTML = tableHTML;
+  pdfElement.style.position = 'absolute';
+  pdfElement.style.left = '-9999px';
+  pdfElement.style.width = '1200px';
+  document.body.appendChild(pdfElement);
+
+  html2canvas(pdfElement, {
+    scale: 2,
+    useCORS: true,
+    logging: false,
+    backgroundColor: '#ffffff',
+  }).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = pageWidth - 20;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+    const pdfFilename = projectName
+      ? projectName.replace(/[\/<>:"|?*]/g, '_') + '_' + new Date().toISOString().slice(0,10) + '.pdf'
+      : 'ManMonth_ICT_' + new Date().toISOString().slice(0,10) + '.pdf';
+    pdf.save(pdfFilename);
+    document.body.removeChild(pdfElement);
+  }).catch(err => {
+    alert('เกิดข้อผิดพลาดในการสร้าง PDF');
+    document.body.removeChild(pdfElement);
+  });
+}
 </script>
 </body>
 </html>
